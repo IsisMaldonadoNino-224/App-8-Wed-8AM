@@ -1,1 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
 
+<!-- The following code has been developed by students and/or researchers of the Freshman Research Initiative, DIY Diagnostics Stream at The University of Texas at Austin.  This code is shared for demonstration purposes and should not be considered a product -- it is for entertainment purposes only.  Any user of this code does so at their own risk. Members of the DIY Stream, FRI, and The University of Texas system are not liable for anything related to this code.
+ 
+  THIS CODE SHOULD NOT BE USED TO DIAGNOSE ANY KIND OF MEDICAL CONDITION.
+ 
+  Further Information:
+  http://cns.utexas.edu/fri
+ 
+  Research Educator:
+  Timothy E. Riedel
+  triedel@utexas.edu
+ 
+  Authors in chronological order of contribution:
+  Author 1: Timothy E. Riedel
+  Author 2: Christine Davis 
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LAMP Color Diagnostic App</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            margin: 20px;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        p {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            margin: 10px 0;
+            cursor: pointer;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #preview {
+            margin-top: 20px;
+            max-width: 400px;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            display: none;
+        }
+
+        #result {
+            margin-top: 30px;
+            font-size: 24px;
+            font-weight: bold;
+            padding: 20px;
+            background-color: white;
+            border-radius: 5px;
+            min-height: 40px;
+        }
+
+        .debug-info {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e8f4f8;
+            border-radius: 5px;
+            font-size: 12px;
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>LAMP Color Diagnostic App</h1>
+    <p>Upload an image of your LAMP test to determine if it is POSITIVE (yellow) or NEGATIVE (pink).</p>
+
+    <input type="file" id="imageInput" accept="image/*">
+    <br>
+    <button onclick="analyzeImage()">Analyze Image</button>
+
+    <br>
+    <img id="preview" alt="Image Preview">
+
+    <div id="result"></div>
+    <div class="debug-info" id="debugInfo"></div>
+
+    <script>
+
+        const imageInput = document.getElementById("imageInput");
+        const preview = document.getElementById("preview");
+        const resultDiv = document.getElementById("result");
+        const debugInfo = document.getElementById("debugInfo");
+
+        let uploadedImage = null;
+
+        // Event listener for image upload
+        imageInput.addEventListener("change", function(event) {
+            const file = event.target.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = "block";
+
+                    // Create image object for analysis
+                    uploadedImage = new Image();
+                    uploadedImage.src = e.target.result;
+                };
+
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Main analysis function
+        function analyzeImage() {
+
+            if (!uploadedImage) {
+                alert("Please upload an image first!");
+                return;
+            }
+
+            // Wait for image to fully load
+            if (!uploadedImage.complete) {
+                uploadedImage.onload = function() {
+                    performAnalysis();
+                };
+            } else {
+                performAnalysis();
+            }
+        }
+
+        function performAnalysis() {
+            // Create invisible canvas
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+
+            // Set canvas size to match image
+            canvas.width = uploadedImage.width;
+            canvas.height = uploadedImage.height;
+
+            // Draw image onto canvas
+            ctx.drawImage(uploadedImage, 0, 0);
+
+            // Extract pixel data
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            // Calculate average color values
+            let totalR = 0;
+            let totalG = 0;
+            let totalB = 0;
+
+            let pixelCount = data.length / 4;
+
+            // Loop through all pixels and sum RGB values
+            for (let i = 0; i < data.length; i += 4) {
+                totalR += data[i];     // Red
+                totalG += data[i + 1]; // Green
+                totalB += data[i + 2]; // Blue
+            }
+
+            // Calculate average color values
+            const avgR = Math.round(totalR / pixelCount);
+            const avgG = Math.round(totalG / pixelCount);
+            const avgB = Math.round(totalB / pixelCount);
+
+            console.log("Average RGB:", avgR, avgG, avgB);
+            debugInfo.innerText = `Debug Info - Average RGB: R=${avgR}, G=${avgG}, B=${avgB}`;
+
+            // Improved color detection logic
+            let resultText = "";
+
+            // Yellow detection: Red and Green are high, Blue is low
+            if (avgR > 150 && avgG > 150 && avgB < 150) {
+                resultText = "🟡 POSITIVE: Sample appears YELLOW (amplification detected)";
+            }
+            // Pink detection: Red and Blue are high, Green is low
+            else if (avgR > 150 && avgB > 150 && avgG < 150) {
+                resultText = "🔴 NEGATIVE: Sample appears PINK (no amplification)";
+            }
+            // If differences aren't clear enough
+            else {
+                resultText = "⚠️ UNCERTAIN: Color is ambiguous, please retest";
+            }
+
+            resultDiv.innerText = resultText;
+        }
+
+    </script>
+
+</body>
+</html>
